@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เครื่องมือคำนวณ Sample Size และรูปแบบการเดินตรวจ — ผู้ตรวจแปลง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1D9E75; --green-dark: #0F6E56; --green-bg: #E1F5EE;
+    --coral: #D85A30; --coral-dark: #993C1D; --coral-bg: #FAECE7;
+    --amber: #EF9F27; --amber-dark: #854F0B; --amber-bg: #FAEEDA;
+    --blue: #185FA5; --blue-bg: #E6F1FB;
+    --success-bg: #E1F5EE; --success-text: #0F6E56;
+    --danger-bg: #FAECE7; --danger-text: #993C1D;
+    --text-primary: #2C2C2A; --text-secondary: #5F5E5A;
+    --border: #D3D1C7; --border-strong: #B4B2A9;
+    --surface: #FFFFFF; --surface-alt: #F1EFE8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Sarabun', 'Tahoma', sans-serif;
+    background: var(--surface-alt); color: var(--text-primary);
+    margin: 0; padding: 24px 16px 60px; line-height: 1.6;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .card {
+    background: var(--surface); border-radius: 16px;
+    border: 1px solid var(--border); padding: 28px 28px 32px;
+  }
+  h1 { font-size: 22px; font-weight: 600; color: var(--green-dark); margin: 0 0 4px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); margin: 0 0 20px; }
+  .section-title { font-size: 15px; font-weight: 500; margin: 0 0 4px; }
+  .section-note { font-size: 12px; color: var(--text-secondary); margin: 0 0 14px; }
+  label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  input[type=number], select {
+    width: 100%; font-size: 15px; font-family: inherit; padding: 10px 12px;
+    border-radius: 10px; border: 1px solid var(--border-strong);
+    background: var(--surface-alt); color: var(--text-primary); box-sizing: border-box;
+  }
+  input[type=number]:focus, select:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+  .field { margin-bottom: 16px; }
+  .err {
+    font-size: 13px; color: var(--danger-text); margin-top: 6px; display: none;
+  }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 26px 0 20px; }
+  .result-box {
+    background: var(--surface-alt); border-radius: 12px; padding: 16px; margin: 14px 0 6px; display: none;
+  }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .result-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+  .result-value { font-size: 20px; font-weight: 600; color: var(--green-dark); }
+  .result-pattern {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 16px; font-weight: 600; color: var(--blue);
+  }
+  .hint {
+    border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.6; margin: 16px 0;
+  }
+  .hint.blue { background: var(--blue-bg); color: var(--blue); }
+  .hint.amber { background: var(--amber-bg); color: var(--amber-dark); }
+  footer { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>เครื่องมือคำนวณ Sample Size และรูปแบบการเดินตรวจ</h1>
+    <p class="subtitle">อิงหลัก hypergeometric approximation แบบเดียวกับ CDFA Statistical Method of Field Walking — ใช้กับพืชกลุ่ม "อื่นทั่วไป" (ไม่ใช่ธัญพืชหรือข้าวโพด)</p>
+
+    <div class="hint amber">
+      <strong>ใช้ได้เฉพาะพืชกลุ่มที่ 2</strong> ตามคู่มือปฏิบัติงาน (พืชที่ไม่ใช่ธัญพืชและไม่ใช่ข้าวโพด เช่น แตง มะเขือเทศ ถั่ว หอม) ธัญพืชใช้ X-pattern และข้าวโพดใช้วิธีเดินรอบแปลง+ผ่านกลาง ไม่ใช้เครื่องมือนี้
+    </div>
+
+    <div class="section-title">ขั้นที่ 1 — คำนวณจำนวนต้นที่ต้องตรวจ (sample size)</div>
+    <p class="section-note">กรอกจำนวนต้นทั้งหมดในแปลง ระดับความเชื่อมั่น และ design prevalence เพื่อคำนวณจำนวนตัวอย่างขั้นต่ำ</p>
+
+    <div class="field">
+      <label for="pop">จำนวนต้นทั้งหมดในแปลง (N)</label>
+      <input type="number" id="pop" min="1" step="1" placeholder="เช่น 5000">
+      <div class="err" id="err-pop">กรอกจำนวนต้นเป็นเลขจำนวนเต็มมากกว่า 0</div>
+    </div>
+
+    <div class="field">
+      <label for="conf">ระดับความเชื่อมั่น (confidence level)</label>
+      <select id="conf">
+        <option value="0.90">90%</option>
+        <option value="0.95" selected>95%</option>
+        <option value="0.99">99%</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="prev">design prevalence — สัดส่วนการติดเชื้อที่ต้องตรวจพบให้ได้ (%)</label>
+      <input type="number" id="prev" min="0.001" max="100" step="0.01" value="0.1">
+      <div class="err" id="err-prev">กรอกค่าระหว่าง 0.001 ถึง 100</div>
+    </div>
+
+    <div class="result-box" id="result1">
+      <div class="result-grid">
+        <div>
+          <div class="result-label">จำนวนต้นติดเชื้อขั้นต่ำที่ต้องตรวจพบ (D)</div>
+          <div class="result-value" id="out-d">—</div>
+        </div>
+        <div>
+          <div class="result-label">ต้องตรวจอย่างน้อย (sample size)</div>
+          <div class="result-value" id="out-n">—</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-title">ขั้นที่ 2 — แปลงเป็นรูปแบบการเดินตรวจ (field walking pattern)</div>
+    <p class="section-note">กรอกโครงสร้างแปลงจริง เพื่อดูว่าต้องเดินตรวจทุกกี่แถว</p>
+
+    <div class="field">
+      <label for="rows">จำนวนแถวทั้งหมดในแปลง</label>
+      <input type="number" id="rows" min="1" step="1" placeholder="เช่น 80">
+      <div class="err" id="err-rows">กรอกจำนวนแถวเป็นเลขจำนวนเต็มมากกว่า 0</div>
+    </div>
+
+    <div class="result-box" id="result2">
+      <div class="result-grid">
+        <div>
+          <div class="result-label">ต้นเฉลี่ยต่อแถว</div>
+          <div class="result-value" id="out-perrow" style="font-size:18px">—</div>
+        </div>
+        <div>
+          <div class="result-label">จำนวนแถวที่ต้องเดินตรวจ</div>
+          <div class="result-value" id="out-rowsneeded" style="font-size:18px">—</div>
+        </div>
+      </div>
+      <div class="result-pattern" id="out-pattern">—</div>
+    </div>
+
+    <div class="hint blue">
+      <strong>ข้อจำกัดสำคัญ:</strong> สูตรนี้ตั้งสมมติฐานว่าการกระจายของต้นติดเชื้อเป็นแบบสุ่มทั่วแปลง — ในความเป็นจริงโรคมักกระจายแบบจับกลุ่ม (spatial pattern) เช่น กระจุกขอบแปลงหรือเป็นแถว หากคาดว่าจะพบรูปแบบจับกลุ่ม ควรเพิ่มความหนาแน่นการเดินตรวจเฉพาะจุดนั้นเพิ่มเติมจากผลคำนวณนี้ และค่าความเชื่อมั่นที่เลือกไม่ใช่ 100% เสมอ ยังมีโอกาสพลาดตามระดับที่เลือกไว้
+    </div>
+
+    <div class="hint amber">
+      ถ้าตารางอ้างอิงของ CDFA สำหรับพืชชนิดนั้นกำหนดความถี่การเดินตรวจสูงกว่าผลคำนวณนี้ ให้ยึดตาราง CDFA เป็นหลัก เนื่องจากได้ปรับตามพฤติกรรมโรคของพืชแต่ละชนิดมาแล้ว
+    </div>
+  </div>
+  <footer>เครื่องมือฝึกภายในสำหรับหลักสูตรผู้ตรวจแปลงเมล็ดพันธุ์ — ใช้งานออฟไลน์ได้หลังโหลดหน้าครั้งแรก</footer>
+</div>
+
+<script>
+function calc() {
+  var popEl = document.getElementById('pop');
+  var prevEl = document.getElementById('prev');
+  var rowsEl = document.getElementById('rows');
+  var N = parseFloat(popEl.value);
+  var C = parseFloat(document.getElementById('conf').value);
+  var P = parseFloat(prevEl.value) / 100;
+
+  var popOk = Number.isFinite(N) && N >= 1;
+  document.getElementById('err-pop').style.display = (popEl.value !== '' && !popOk) ? 'block' : 'none';
+
+  var prevOk = Number.isFinite(P) && P > 0 && P <= 1;
+  document.getElementById('err-prev').style.display = (prevEl.value !== '' && !prevOk) ? 'block' : 'none';
+
+  var result1 = document.getElementById('result1');
+  var n = null;
+  if (popOk && prevOk) {
+    var D = Math.max(1, Math.ceil(P * N));
+    var raw = (1 - Math.pow(1 - C, 1 / D)) * (N - (D - 1) / 2);
+    n = Math.max(1, Math.ceil(raw));
+    if (n > N) n = Math.ceil(N);
+    document.getElementById('out-d').textContent = D.toLocaleString();
+    document.getElementById('out-n').textContent = n.toLocaleString() + ' ต้น';
+    result1.style.display = 'block';
+  } else {
+    result1.style.display = 'none';
+  }
+
+  var R = parseFloat(rowsEl.value);
+  var rowsOk = Number.isFinite(R) && R >= 1;
+  document.getElementById('err-rows').style.display = (rowsEl.value !== '' && !rowsOk) ? 'block' : 'none';
+
+  var result2 = document.getElementById('result2');
+  if (popOk && prevOk && rowsOk && n !== null) {
+    var perRow = N / R;
+    var rowsNeeded = Math.min(R, Math.max(1, Math.ceil(n / perRow)));
+    var interval = Math.max(1, Math.floor(R / rowsNeeded));
+    document.getElementById('out-perrow').textContent = perRow.toFixed(1) + ' ต้น/แถว';
+    document.getElementById('out-rowsneeded').textContent = rowsNeeded.toLocaleString() + ' แถว';
+    document.getElementById('out-pattern').textContent = interval <= 1
+      ? 'ต้องเดินตรวจทุกแถว (ไม่สามารถข้ามได้)'
+      : 'เดินตรวจทุกแถวที่ ' + interval + ' (ประมาณ ' + Math.ceil(R / interval) + ' แถวที่เดินจริง)';
+    result2.style.display = 'block';
+  } else {
+    result2.style.display = 'none';
+  }
+}
+['pop', 'conf', 'prev', 'rows'].forEach(function (id) {
+  document.getElementById(id).addEventListener('input', calc);
+  document.getElementById(id).addEventListener('change', calc);
+});
+</script>
+</body>
+</html>
